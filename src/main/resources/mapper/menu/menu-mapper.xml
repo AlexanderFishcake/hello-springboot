@@ -53,4 +53,10 @@
 		</set>
 		where id = #{id}
 	</update>
+	<delete id="deleteMenu">
+		delete from 
+			menu
+		where 
+			id = #{id}
+	</delete>
 </mapper>

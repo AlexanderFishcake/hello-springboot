@@ -199,6 +199,7 @@ div.result{width:70%; margin:0 auto;}
 			</form>
 			<hr />
 			<form id="menuUpdateFrm">
+				<input type="hidden" name="id" />
 				<input type="text" name="restaurant" placeholder="음식점" class="form-control" />
 				<br />
 				<input type="text" name="name" placeholder="메뉴" class="form-control" />
@@ -227,46 +228,68 @@ div.result{width:70%; margin:0 auto;}
 		<script>
 		$("#menuSearchFrm").submit(e => {
 			e.preventDefault(); //폼제출 방지
+
+			//e.target 하위의 선택자를 조회하는 방식. 234,235줄 대체
+			//const id =$("[name=id]",e.target).val();
 			
 			const $frm = $(e.target);
 			const id = $frm.find("[name=id]").val();
-			console.log(id);
-
-			const $updateFrm = $("#menuUpdateFrm");
+			if(!id) return; //id==null이면  실행방지
 
 			$.ajax({
 				url: `${pageContext.request.contextPath}/menu/\${id}`,
 				success(data){
 					console.log(data);
-					$updateFrm.find("[name=restaurant]").val(data.restaurant);
-					$updateFrm.find("[name=name]").val(data.name);
-					$updateFrm.find("[name=price]").val(data.price);
-					$updateFrm.find("[name=type][value="+data.type+"]").prop("checked", true);
-					$updateFrm.find("[name=taste][value="+data.taste+"]").prop("checked", true);
+
+					if(data){
+						const $frm = $("#menuUpdateFrm");
+						const{id, restaurant, name, price, type, taste} = data;
+						$frm.find("[name=id]").val(id);
+						$frm.find("[name=restaurant]").val(restaurant);
+						$frm.find("[name=name]").val(name);
+						$frm.find("[name=price]").val(price);
+						$frm.find(`[name=type][value=\${type}]`).prop("checked", true);
+						$frm.find("[name=taste][value="+taste+"]").prop("checked", true);
+					}
+					/* else{
+						alert("해당 메뉴가 존재하지 않습니다.");
+						$("[name=id]",e.target).select();
+					} */
 				},
-				error: console.log
+				/*
+					ResponseEntity로 검색결과 없을때 404 return하게 바꿨기 때문에
+					위의 else문에 들어가지 않고 아래의 error코드로 들어가게 된다. 
+				 */ 
+				error(xhr, statusText, err){
+					console.log(xhr, statusText, err);
+
+					const {status} = xhr;
+					status == 404 && alert("해당 메뉴가 존재하지 않습니다.");
+					$("[name=id]", e.target).select();
+				}
 			});
 		});
 
 		$("#menuUpdateFrm").submit(e => {
 			e.preventDefault(); //폼제출 방지
-			const $frm = $(e.target);
-
-			const id = $("#menuSearchFrm").find("[name=id]").val();
-			const restaurant = $frm.find("[name=restaurant]").val();
-			const name = $frm.find("[name=name]").val();
-			const price = $frm.find("[name=price]").val();
-			const type = $frm.find("[name=type]:checked").val();
-			const taste = $frm.find("[name=taste]:checked").val();
+			/* const $frm = $(e.target);
 
 			const menu = {
-					id,
-					restaurant,
-					name,
-					price,
-					type,
-					taste
+					id : $frm.find("[name=id]").val(),
+					restaurant : $frm.find("[name=restaurant]").val(),
+					name : $frm.find("[name=name]").val(),
+					price : $frm.find("[name=price]").val(),
+					type : $frm.find("[name=type]:checked").val(),
+					taste : $frm.find("[name=taste]:checked").val()
 			};
+			console.log(menu); */
+
+			//formData를 활용해서 객체만들기
+			const frmData = new FormData(e.target);
+			const menu = {};
+			frmData.forEach((value,key) => {
+				menu[key] = value;
+			});
 			console.log(menu);
 
 			$.ajax({
@@ -281,12 +304,58 @@ div.result{width:70%; margin:0 auto;}
 				},
 				error: console.log,
 				complete(){
+					//reset은 javascript함수라서 jquery[0]해줘야 함.
+					$("#menuSearchFrm")[0].reset();
+					$("#menuUpdateFrm")[0].reset();
 					//e.target.reset(); //폼 초기화
 				}
 			});
 		});
 		</script>
 		
+		<!-- 4. 삭제 DELETE /menu/123 -->    
+		<div class="menu-test">
+	    	<h4>메뉴 삭제하기(DELETE)</h4>
+	    	<p>메뉴번호를 사용해 해당메뉴정보를 삭제함.</p>
+	    	<form id="menuDeleteFrm">
+	    		<input type="text" name="id" placeholder="메뉴번호" class="form-control" /><br />
+	    		<input type="submit" class="btn btn-block btn-outline-danger btn-send" value="삭제" >
+	    	</form>
+		</div>
+		
+		<script>
+		$("#menuDeleteFrm").submit(e => {
+			e.preventDefault();
+
+			const id = $("[name=id]",e.target).val();
+
+			if(!id) return;
+			$.ajax({
+				url: `${pageContext.request.contextPath}/menu/\${id}`,
+				method: "DELETE",
+				success(data){
+					console.log(data);
+					const {msg} = data;
+					alert(msg);
+				},
+				error(xhr, statusText, err){
+					const {status} = xhr;
+					switch(status){
+					case 404: alert("해당 메뉴가 존재하지 않습니다."); break;
+					default: alert("메뉴 삭제 실패!");
+					}
+					$("[name=id]", e.target).select();
+				},
+				complete(){
+					$(e.target)[0].reset();
+					//e.target.reset();
+				}
+				
+			});
+		});
+
+		
+		</script>
 		
 	</div>
 </section>

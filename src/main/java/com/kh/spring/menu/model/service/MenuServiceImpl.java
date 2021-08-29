@@ -40,4 +40,9 @@ public class MenuServiceImpl implements MenuService {
 		return menuDao.updateMenu(menu);
 	}
 
+	@Override
+	public int deleteMenu(String id) {
+		return menuDao.deleteMenu(id);
+	}
+
 }
